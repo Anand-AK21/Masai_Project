@@ -1,0 +1,63 @@
+=== AUDIT OF RAW TABLES ===
+
+--- customers: shape=(1200, 5)
+               dtype  missing  missing_pct
+customer_id      str        0         0.00
+city             str        0         0.00
+signup_date      str        0         0.00
+age          float64       61         5.08
+gender           str       30         2.50
+
+--- products: shape=(40, 4)
+              dtype  missing  missing_pct
+product_id      str        0          0.0
+product_name    str        0          0.0
+category        str        0          0.0
+price_inr     int64        0          0.0
+
+--- orders: shape=(13084, 9)
+                    dtype  missing  missing_pct
+order_id              str        0         0.00
+customer_id           str        0         0.00
+product_id            str        0         0.00
+quantity            int64        0         0.00
+order_ts              str        0         0.00
+status                str        0         0.00
+discount_pct        int64        0         0.00
+order_amount          str       53         0.41
+delivery_minutes  float64     2541        19.42
+
+--- key audit figures
+raw orders rows                             13,084
+exact duplicate rows                           119
+rows with status pending                       656
+distinct order_id                           12,309
+non-numeric order_amount                       120
+negative delivery_minutes                      106
+blank delivery_minutes                       2,541
+blank age                                       61
+age outside 10-100                               6
+distinct raw city spellings                     24
+distinct non-blank raw gender spellings         10
+blank gender                                    30
+
+=== CLEANING CUSTOMERS ===
+(a) city: 24 spellings -> 6 cities
+(b) gender counts: {'female': 610, 'male': 560, 'unknown': 30}
+(c) ages set missing (outside 10-100): 6; total missing filled with city median: 67; missing after: 0; min/max age: 18/60
+(d) signup_date converted to datetime (2024-01-01 .. 2025-03-31)
+city counts: {'Pune': 227, 'Delhi': 210, 'Bengaluru': 197, 'Chennai': 191, 'Hyderabad': 191, 'Mumbai': 184}
+
+=== CLEANING ORDERS ===
+rule 1: order_ts -> datetime (all 13084 rows parsed)
+rule 2: removed 119 exact duplicate rows -> 12965 rows
+rule 3: kept latest record per order_id, dropped 656 superseded (pending) rows -> 12309 rows
+rule 4: 112 unparseable/missing amounts rebuilt from price*qty*(1-disc/100); missing after: 0
+rule 5: 105 negative delivery times -> missing; 774 completed orders with missing delivery filled with category median; cancelled orders left missing (1199)
+
+--- after cleaning
+rows=12309; status counts={'completed': 11110, 'cancelled': 1199}
+missing order_amount=0; missing delivery (completed)=0; missing delivery (cancelled)=1199
+sum of completed order_amount = INR 2,998,668.80
+
+stored 3 CSVs in data/clean/ and 3 tables in data/instamart.db

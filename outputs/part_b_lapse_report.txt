@@ -1,0 +1,57 @@
+cohort=1156; lapsed=443 (38.32%)
+confirmed: no feature column contains a missing value
+train=924 test=232; train lapsed=354 / not lapsed=570
+
+scaler mean of frequency (train only) = 8.1147 | full-cohort mean of frequency = 8.0285
+they differ because the scaler learns its mean from the 924 training rows only; the 232 test rows were never shown to it.
+
+BASELINE (always 'not lapsed'): accuracy=61.6%  lapsed F1=0.00
+
+LogReg  best params={'clf__C': 100}  best CV F1=0.6506
+RForest best params={'clf__max_depth': 8, 'clf__min_samples_leaf': 10}  best CV F1=0.6811
+
+LogisticRegression TEST: precision=0.644 recall=0.652 F1=0.648
+confusion matrix [[TN FP],[FN TP]] =
+[[111  32]
+ [ 31  58]]
+
+RandomForest TEST: precision=0.659 recall=0.652 F1=0.655
+confusion matrix [[TN FP],[FN TP]] =
+[[113  30]
+ [ 31  58]]
+
+SELECTED MODEL (higher CV F1): RandomForest; test F1=0.655
+
+OVERSAMPLING: balanced training set = 570 not-lapsed / 570 lapsed
+unbalanced LR : precision=0.644 recall=0.652 F1=0.648
+balanced   LR : precision=0.589 recall=0.854 F1=0.697
+
+Top-5 random-forest feature importances:
+num__frequency       0.2796
+num__monetary        0.2712
+num__recency         0.1152
+num__avg_delivery    0.0612
+num__cancel_rate     0.0525
+
+Logistic-regression coefficients (standardised features):
+num__recency         0.039
+num__frequency      -1.697
+num__tenure_days    -0.050
+num__monetary        0.283
+num__avg_discount    0.005
+
+reloaded model reproduces test predictions exactly: True
+
+retention list: 10 premium test customers, 1 truly lapsed
+customer_id  lapse_probability  actually_lapsed
+      C0862             0.4872                0
+      C1112             0.4841                0
+      C0802             0.4798                0
+      C0060             0.4798                0
+      C1008             0.4760                0
+      C1000             0.4604                0
+      C0525             0.4579                1
+      C0133             0.4559                0
+      C0267             0.4523                0
+      C0167             0.4522                0
+NOTE: the Premium flag uses whole-window RFM (includes September), so this list is illustrative, not a leakage-free evaluation.

@@ -1,0 +1,34 @@
+=== CHUNKING (40 words, overlap 10) ===
+chunks: 15 {'delivery_policy.txt': 3, 'escalation_policy.txt': 3, 'payment_policy.txt': 3, 'privacy_policy.txt': 2, 'refund_policy.txt': 4}
+top-3 sources for 'refund policy late delivery': ['refund_policy.txt', 'refund_policy.txt', 'refund_policy.txt']
+
+=== RETRIEVAL + GROUNDING EVALUATION ===
+
+--- overlap 10: chunks=15 | expected_doc in top-3: 12/12 | expected_fact in answer: 12/12 | fallback on unanswerable: 2/2
+
+--- overlap 0: chunks=13 | expected_doc in top-3: 12/12 | expected_fact in answer: 10/12 | fallback on unanswerable: 2/2
+   FAILS: 'What delivery time makes a completed order eligible for a full refund?' (doc retrieved=True, fact in answer=False) -> answer was: 'receives a full refund of the order amount.'
+   FAILS: 'How soon is money returned when a payment fails but is deducted?' (doc retrieved=True, fact in answer=False) -> answer was: 'If a payment fails but money is deducted, the amount is returned automatically\n\n \n1000 must be approved by a h'
+
+=== SEVEN AGENT SCENARIOS (token_limit=6000, max_iterations=6) ===
+scenario                  status refund_inr  model_calls  tokens_used  expected matches
+      S1                  REFUND     128.25            5         1047    REFUND     yes
+      S2                  REFUND     135.00            5         1047    REFUND     yes
+      S3                ESCALATE    1999.00            5         1034  ESCALATE     yes
+      S4                  DENIED       0.00            4          725    DENIED     yes
+      S5                  DENIED       0.00            3          427    DENIED     yes
+      S6               NOT_FOUND       0.00            2          132 NOT_FOUND     yes
+      S7 FALLBACK_MAX_ITERATIONS       0.00            6         3180  FALLBACK     yes
+
+=== STOP-SAFELY DEMOS ===
+S1 with token_limit=200      -> FALLBACK_TOKEN_LIMIT (model calls=3, tokens=444, tools executed=['get_order', 'search_policy'])
+   handoff: HANDOFF TO HUMAN: automated run stopped (token limit 200 exceeded (444 used)) after 3 model calls, 2 tool steps (get_order, search_policy) a...
+S1 with time_limit_seconds=0 -> FALLBACK_TIMEOUT (model calls=0, tools executed=[])
+S7 with default limits       -> FALLBACK_MAX_ITERATIONS (model calls=6, tokens=3180)
+
+=== CRASH AND RESUME (S1) ===
+crash raised: simulated crash after tool execution #2; checkpoint holds tools_executed=['get_order', 'search_policy'], tokens_used=162, step=2
+resumed run status=REFUND refund=INR 128.25; tools executed across both parts: ['get_order', 'search_policy', 'calculate_refund', 'issue_refund']
+
+ledger lines: 3 -> [('issue_refund', 'ORD-100048', 128.25), ('issue_refund', 'ORD-100067', 135.0), ('escalate_to_human', 'ORD-100145', 1999.0)]
+checkpoint files in state/: ['S1-crash-demo.json', 'S1-timeout-demo.json', 'S1-token-limit-demo.json', 'S1.json', 'S2.json', 'S3.json', 'S4.json', 'S5.json', 'S6.json', 'S7.json']
